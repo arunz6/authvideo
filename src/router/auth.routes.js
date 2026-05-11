@@ -6,7 +6,9 @@ const authroutes = Router();
 
 
 //  /api/auth/register
-authroutes.post("register",authController.register)
+authroutes.post("/register",authController.register)
+
+authroutes.post("/getme",authController.getme)
 
 
 
