@@ -10,6 +10,8 @@ authroutes.post("/register",authController.register)
 
 authroutes.post("/getme",authController.getme)
 
+authroutes.post("/refreshtoken",authController.resfeshtoken)
+
 
 
 

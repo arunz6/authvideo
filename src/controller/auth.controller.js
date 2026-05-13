@@ -4,42 +4,6 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
 
-//do not use it 
-async function rigester (req,res) {
-  const{username,email,password} = req.body
-
-  const isalreadyregisterd = await userModel.findOne({
-    $or:[
-      {username},
-      {email}
-    ]
-  })
-  if(!isalreadyregisterd){
-    return res.status(409).json({
-      message: ""
-    })
-  }
-   const hashedPassword = crypto.createHash("sha256").update(password).digest("hex");
-const user = await userModel.create({
-   username,
-      email,
-      password:hashedPassword
-});
- const token = jwt.sign({id:user._id},config.JWTKEY,{
-      expiresIn:"1d"
-    })
-
-      res.status(201).json({
-      message:"user registed donee",
-      user:{
-        username:user.username,
-        email:user.email
-      },token
-    })
-
-
-  
-}
 
 //working 
 async function register (req , res ) {
@@ -65,8 +29,19 @@ async function register (req , res ) {
     })
 
 
-    const token = jwt.sign({id:user._id},config.JWTKEY,{
-      expiresIn:"1d"
+    const accestoken = jwt.sign({id:user._id},config.JWTKEY,{
+      expiresIn:"15m"
+    })
+
+    const refreshtoken = jwt.sign({id:user._id}
+      ,config.JWTKEY,
+      { expiresIn:"7d"}
+    )
+    res.cookie("refreshtoken",refreshtoken,{
+      httponly:true,
+      secure:true, 
+      sameSite:"strict",
+      maxAge:7 * 24 * 60 * 1000 
     })
 
     res.status(201).json({
@@ -74,7 +49,7 @@ async function register (req , res ) {
       user:{
         username:user.username,
         email:user.email
-      },token
+      },accestoken
     })
 
   
@@ -99,6 +74,36 @@ async function getme(req,res) {
   })
 }
 
+async function resfeshtoken (req ,res ) {
+  const refreshtoken =  req.cookies.refreshtoken
+
+  if(!refreshtoken){
+    return res.status(401).json({
+      message:"token is not present "
+    })
+  }
+const decoded = jwt.verify(refreshtoken , config.JWTKEY)
+  const accestoken = jwt.sign({
+    id:decoded.id, 
+  } ,config.JWTKEY,{expiresIn:"15m"})
+
+   const newrefreshtoken = jwt.sign({id:decoded._id}
+      ,config.JWTKEY,
+      { expiresIn:"7d"}
+    )
+    res.cookie("refreshtoken",newrefreshtoken,{
+     httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    })
+
+  res.status(200).json({
+    message:"access token refresh",
+    accestoken
+  })
+  
+}
 
 
 
@@ -107,4 +112,5 @@ async function getme(req,res) {
 
 
 
-export default {register,getme}
+
+export default {register,getme ,resfeshtoken}
